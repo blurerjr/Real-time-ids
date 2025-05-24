@@ -1,5 +1,4 @@
 streamlit 
 numpy 
 pandas 
-time 
-plotly_express
+plotly
