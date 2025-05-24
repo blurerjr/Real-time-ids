@@ -54,7 +54,8 @@ with chart_col2:
     st.markdown("### Second Chart")
     chart2_placeholder = st.empty() # Placeholder for the second chart within its column
 
-st.markdown("### Detailed Data View")
+# Placeholder for the detailed data view (now only top 10 head)
+st.markdown("### Top 10 Data Head")
 data_table_placeholder = st.empty() # Placeholder for the dataframe
 
 
@@ -97,7 +98,10 @@ for seconds in range(200):
     chart1_placeholder.plotly_chart(fig, use_container_width=True)
     chart2_placeholder.plotly_chart(fig2, use_container_width=True)
 
-    # --- Update Detailed Data View ---
-    data_table_placeholder.dataframe(df_for_simulation, use_container_width=True)
+    # --- Update Top 10 Data Head ---
+    if not df_for_simulation.empty:
+        data_table_placeholder.dataframe(df_for_simulation.head(10), use_container_width=True)
+    else:
+        data_table_placeholder.info("No data to display.")
     
     time.sleep(1)
