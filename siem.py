@@ -3,6 +3,7 @@ import numpy as np # np mean, np random
 import pandas as pd # read csv, df manipulation
 import time # to simulate a real time data, time loop 
 import plotly.express as px # interactive charts 
+import plotly.graph_objects as go # Needed if manually creating figures, but px is fine
 
 # --- Data Loading (outside the loop, as it's static) ---
 feature=["duration","protocol_type","service","flag","src_bytes","dst_bytes","land","wrong_fragment","urgent","hot",
@@ -38,30 +39,35 @@ else:
     st.stop()
 
 
-# --- Layout Pre-allocation (Crucial for avoiding duplicate IDs) ---
+# --- Layout Pre-allocation and Initial Chart Creation ---
 
 # Create placeholders for KPIs
-kpi1_ph, kpi2_ph, kpi3_ph = st.columns(3) # These column objects are created once
+kpi1_ph, kpi2_ph, kpi3_ph = st.columns(3) 
 
-# Create placeholders for charts
-chart_col1, chart_col2 = st.columns(2) # These column objects are created once
+# Create columns and placeholders for charts
+chart_col1, chart_col2 = st.columns(2) 
 
 with chart_col1:
     st.markdown("### First Chart")
-    chart1_placeholder = st.empty() # Placeholder for the first chart within its column
+    # Create an initial dummy figure or a figure with initial data
+    # This figure object will be updated in the loop
+    initial_fig1 = px.density_heatmap(data_frame=initial_filtered_df.head(1), y='logged_in', x='label', title="Loading...") # Use minimal data to start
+    chart1_placeholder = st.plotly_chart(initial_fig1, use_container_width=True) 
 
 with chart_col2:
     st.markdown("### Second Chart")
-    chart2_placeholder = st.empty() # Placeholder for the second chart within its column
+    # Create an initial dummy figure or a figure with initial data
+    # This figure object will be updated in the loop
+    initial_fig2 = px.histogram(data_frame=initial_filtered_df.head(1), x='logged_in', title="Loading...") # Use minimal data to start
+    chart2_placeholder = st.plotly_chart(initial_fig2, use_container_width=True) 
 
-# Placeholder for the detailed data view (now only top 10 head)
+# Placeholder for the top 10 data head
 st.markdown("### Top 10 Data Head")
-data_table_placeholder = st.empty() # Placeholder for the dataframe
+data_table_placeholder = st.empty()
 
 
 # --- Near Real-Time / Live Feed Simulation ---
 
-# Use the initial filtered_df to start the simulation
 df_for_simulation = initial_filtered_df.copy()
 
 for seconds in range(200):
@@ -71,6 +77,7 @@ for seconds in range(200):
         continue
 
     # Simulate data changes (operate on the copy for simulation)
+    # Ensure 'logged_in' and 'difficulty' are numeric before multiplication
     if pd.api.types.is_numeric_dtype(df_for_simulation['logged_in']) and \
        pd.api.types.is_numeric_dtype(df_for_simulation['difficulty']):
         df_for_simulation.loc[:, 'Logged_in'] = df_for_simulation['logged_in'] * np.random.choice(range(1,5))
@@ -89,14 +96,23 @@ for seconds in range(200):
     kpi2_ph.metric(label="Label count", value= int(count_label), delta= - 10 + count_label)
     kpi3_ph.metric(label="Difficulty", value=round(balance), delta= round(balance) - 5)
 
-    # --- Update Charts ---
-    # Generate new figures with updated data
-    fig = px.density_heatmap(data_frame=df_for_simulation, y = 'logged_in', x = 'label')
-    fig2 = px.histogram(data_frame = df_for_simulation, x = 'logged_in')
+    # --- Update Charts' Data ---
+    # Generate new figures temporarily to extract updated traces and layout
+    # This is a common pattern when you use px for convenience, then update go.Figure
     
-    # Update the charts using their respective placeholders
-    chart1_placeholder.plotly_chart(fig, use_container_width=True)
-    chart2_placeholder.plotly_chart(fig2, use_container_width=True)
+    # Update Fig 1 (Density Heatmap)
+    temp_fig1 = px.density_heatmap(data_frame=df_for_simulation, y='logged_in', x='label')
+    initial_fig1.data = temp_fig1.data # Update data
+    initial_fig1.layout = temp_fig1.layout # Update layout (important for axes, titles, etc.)
+
+    # Update Fig 2 (Histogram)
+    temp_fig2 = px.histogram(data_frame=df_for_simulation, x='logged_in')
+    initial_fig2.data = temp_fig2.data # Update data
+    initial_fig2.layout = temp_fig2.layout # Update layout
+
+    # Re-render the existing Plotly chart objects
+    chart1_placeholder.plotly_chart(initial_fig1, use_container_width=True)
+    chart2_placeholder.plotly_chart(initial_fig2, use_container_width=True)
 
     # --- Update Top 10 Data Head ---
     if not df_for_simulation.empty:
